@@ -1,15 +1,19 @@
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
 api_key = os.getenv('API_KEY')
+base_path = Path(__file__).resolve().parent
+conversation_path = base_path / "conversation"
 
-def test_break(n):
- print(f"{api_key} {n}")
- if n>=5:
-  break
+print(conversation_path.exists())
+if not conversation_path.exists():
+ print("creat new conversation dir")
+ Path("conversation").mkdir()
 
-n=0
-while True:
- test_break(n)
- n+=1
+print(api_key)
+print(conversation_path)
+with open(f"{conversation_path}/test.txt",'r',encoding='utf-8') as file:
+ lines = file.readlines()
+ print(lines)
