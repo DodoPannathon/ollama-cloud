@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-url = os.getenv("URLS").split(',')[1]
+url = os.getenv("URLS")
 headers = {
     "Authorization": f"Bearer {os.getenv("API_KEY")}",
     "Content-Type": "application/json"
