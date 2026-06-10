@@ -31,16 +31,16 @@ headers = {
     "Content-Type": "application/json"
 }
 
-async def spinner_task():
-    """Display a loading spinner animation."""
-    SPINNER_CHARS = "|/-\\"
-    try:
-        while True:
-            for char in SPINNER_CHARS:
-                print(f"\r{char}", end='', flush=True)
-                await asyncio.sleep(0.1)
-    except asyncio.CancelledError:
-        pass
+def status_display(status: str,num: int):
+    """Return a user-friendly status message."""
+    status_mapping = {
+        "IN_PROGRESS": "in progress",
+        "IN_QUEUE": "in queue",
+    }
+    if num % 2 == 0:
+        print(f"\r\033[90m{status_mapping.get(status, status)}...\033[0m", end="", flush=True)
+    else:
+        print(f"\r\033[90m{status_mapping.get(status, status)}   \033[0m", end="", flush=True)
 
 def convert_title_file(title: str) -> str:
     return f"{title.replace(' ','_')}.txt"
@@ -147,8 +147,6 @@ async def fetch_data(url: str, model: str, context) -> str:
     }
 
     async with aiohttp.ClientSession() as session:
-        # Start spinner
-        # spinner_task_handle = asyncio.create_task(spinner_task())
         
         try:
             async with session.post(f"{url}/run", json=payload, headers=headers) as response:
@@ -162,25 +160,22 @@ async def fetch_data(url: str, model: str, context) -> str:
                     except asyncio.CancelledError:
                         pass
                     return ""
+            n = 0
             while True:
                 async with session.get(f"{url}/stream/{job_id}", headers=headers) as response:
                     if response.status == 200:
-                        # # Cancel spinner before printing response
-                        # spinner_task_handle.cancel()
-                        # try:
-                        #     await spinner_task_handle
-                        # except asyncio.CancelledError:
-                        #     pass
-                        
-                        # # Clear the spinner line and print response
-                        # print("\r" + " " * 50 + "\r", end="", flush=True)
-                        
+                        n += 1
                         data = await response.json()
                         status = data.get("status", "")
                         stream = data.get("stream", [])
+
                         if status in ("COMPLETED", "FAILED", "CANCELLED"):break
-                        if not stream:print(status)
+                        if not stream:
+                            status_display(status,n)
                         else:
+                            if n > 0:
+                                print("\r" + " " * 50 + "\r", end="", flush=True)
+                            n = -1
                             for item in stream:
                                 raw = item.get("output", "")
                                 if raw == "data: [DONE]":
@@ -199,34 +194,6 @@ async def fetch_data(url: str, model: str, context) -> str:
                                 if content:
                                     full_response += content
                                     print(content, end="", flush=True)
-                        
-                        # async for line in response.content:
-                            # line = line.decode('utf-8').strip()
-                            # if line.startswith('data: '):
-                            #     data_str = line[6:].strip()  # Remove 'data: ' prefix
-                            #     try:
-                            #         chunk = json.loads(data_str)
-                            #         choices = chunk.get("choices", [])
-                            #         if choices:
-                            #             delta = choices[0].get("delta", {})
-                            #             content = delta.get("content", "")
-                            #             reasoning = delta.get("reasoning", "")
-                            #             if reasoning:
-                            #                 print(f"\033[90m{reasoning}\033[0m", end="", flush=True)
-                            #             else:
-                            #                 if stream_reasoning:
-                            #                     print()
-                            #                 stream_reasoning = False
-                            #             if content:
-                            #                 full_response += content
-                            #                 print(content, end="", flush=True)
-                            #             # Check if stream is done
-                            #             if choices[0].get("finish_reason") == "stop":
-                            #                 print()
-                            #                 break
-                            #     except json.JSONDecodeError:
-                            #         print("json decode error")
-                            #         continue
                     else:
                         print(f"\nFailed to fetch data: {response.status}")
         except aiohttp.ClientError as e:
@@ -235,14 +202,6 @@ async def fetch_data(url: str, model: str, context) -> str:
             print(f"\nFailed to parse response: {e}")
         except KeyError as e:
             print(f"\nUnexpected response format: {e}")
-        # finally:
-            # Ensure spinner is cancelled
-            # if not spinner_task_handle.done():
-            #     spinner_task_handle.cancel()
-            #     try:
-            #         await spinner_task_handle
-            #     except asyncio.CancelledError:
-            #         pass
 
 async def main():
     """Main entry point for the Ollama Cloud AI client."""
