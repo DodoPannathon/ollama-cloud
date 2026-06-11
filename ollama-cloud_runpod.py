@@ -38,9 +38,9 @@ def status_display(status: str,num: int):
         "IN_QUEUE": "in queue",
     }
     if num % 2 == 0:
-        print(f"\r\033[90m{status_mapping.get(status, status)}...\033[0m", end="", flush=True)
+        print(f"\r\033[90m{status_mapping.get(status, status)}...      \033[0m", end="", flush=True)
     else:
-        print(f"\r\033[90m{status_mapping.get(status, status)}   \033[0m", end="", flush=True)
+        print(f"\r\033[90m{status_mapping.get(status, status)}         \033[0m", end="", flush=True)
 
 def convert_title_file(title: str) -> str:
     return f"{title.replace(' ','_')}.txt"
